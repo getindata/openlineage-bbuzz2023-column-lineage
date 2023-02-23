@@ -1,9 +1,9 @@
 version: "3.7"
 services:
   notebook:
-    image: jupyter/pyspark-notebook:spark-3.3.1
+    build: .
     ports:
-      - "8888:8888"
+      - "18888:8888"
     volumes:
       - ./notebooks:/home/jovyan/notebooks
     links:
