@@ -16,6 +16,6 @@ to see Marquez UI.
 
 Browse `openlineage-bdtw-column-lineage-notebook-1` docker logs to see Jupyter URL printed:
 ```
-http://127.0.0.1:8888/lab?token=<<>>
+http://127.0.0.1:18888/lab?token=<<>>
 ```
 Click the link with a token to access notebooks.
