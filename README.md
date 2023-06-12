@@ -1,4 +1,4 @@
-# openlineage-bdtw-column-lineage
+# openlineage-bbuzz2023-column-lineage
 
 ```
 docker-compose up
@@ -14,8 +14,7 @@ http://localhost:3000
 ```
 to see Marquez UI. 
 
-Browse `openlineage-bdtw-column-lineage-notebook-1` docker logs to see Jupyter URL printed:
+Click this link to access notebooks.
 ```
-http://127.0.0.1:18888/lab?token=<<>>
+http://localhost:18888/
 ```
-Click the link with a token to access notebooks.
