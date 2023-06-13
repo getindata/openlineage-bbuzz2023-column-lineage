@@ -57,7 +57,7 @@ services:
     links:
      - "api:marquez"
     depends_on:
-      - api
+      - seed
 
   api:
     image: marquezproject/marquez:latest
@@ -72,6 +72,24 @@ services:
     depends_on:
       - db
     entrypoint: [ "./wait-for-it.sh", "db:5432", "--", "./entrypoint.sh" ]
+
+  seed:
+    image: marquezproject/marquez:latest
+    container_name: seed-marquez-with-metadata
+    environment:
+      - MARQUEZ_URL=http://api:5000
+      - WAITFORIT_TIMEOUT=60
+    volumes:
+      - ./docker/wait-for-it.sh:/usr/src/app/wait-for-it.sh
+      - ./docker/seed.sh:/usr/src/app/seed.sh
+      - ./docker/metadata.json:/usr/src/app/metadata.json
+    links:
+      - "db:postgres"
+      - "api:marquez"
+    depends_on:
+      - api
+    entrypoint: [ "./wait-for-it.sh", "api:5000", "--", "./seed.sh" ]
+
 
   db:
     image: postgres:13
