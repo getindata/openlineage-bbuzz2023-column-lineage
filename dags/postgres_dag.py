@@ -18,111 +18,61 @@ default_args = {
     'email_on_retry': False,
     'email': ['datascience@example.com']
 }
+CONNECTION = "postgres_conn"
 
-dag = DAG(
+with DAG(
     'postgres',
     schedule_interval=None,
     default_args=default_args,
     description='Determines the popular day of week orders are placed.'
-)
+):
 
-CONNECTION = "postgres_conn"
 
-drop = PostgresOperator(
-    task_id='postgres_drop_if_not_exists',
-    postgres_conn_id=CONNECTION,
-    sql='''
-        DROP TABLE IF EXISTS jelly_colors, jelly_transactions, jelly_users, jelly_favorite_colors, jelly_active_daily_users, jelly_daily_users_green_jellys
-    ''',
-    dag=dag
-)
-
-create_jelly_colors = PostgresOperator(
-    task_id='postgres_create_jelly_colors_table',
-    postgres_conn_id=CONNECTION,
-    sql='''
-    CREATE TABLE jelly_colors (
-        color_uuid varchar(36) primary key,
-        name varchar(255)
+    drop_tables = PostgresOperator(
+        task_id='postgres_drop_if_not_exists',
+        postgres_conn_id=CONNECTION,
+        sql='''
+            DROP TABLE IF EXISTS users, trips
+        '''
     )
-    ''',
-    dag=dag
-)
 
-create_jelly_users = PostgresOperator(
-    task_id='postgres_create_jelly_users_table',
-    postgres_conn_id=CONNECTION,
-    sql='''
-    CREATE TABLE jelly_users (
-        user_uuid varchar(36) primary key,
-        name varchar(255)
+    create_users_table = PostgresOperator(
+        task_id='postgres_create_users_table',
+        postgres_conn_id=CONNECTION,
+        sql='''
+        CREATE TABLE users (
+            user_uuid varchar(36) primary key,
+            name varchar(255)
+        )
+        '''
     )
-    ''',
-    dag=dag
-)
 
-create_jelly_favorite_colors = PostgresOperator(
-    task_id='postgres_create_jelly_favorite_colors_table',
-    postgres_conn_id=CONNECTION,
-    sql='''
-    CREATE TABLE jelly_favorite_colors (
-        user_uuid varchar(36) references jelly_users,
-        color_uuid varchar(36) references jelly_colors
+    create_trips_table = PostgresOperator(
+        task_id='postgres_create_trips_table',
+        postgres_conn_id=CONNECTION,
+        sql='''
+        CREATE TABLE trips (
+            user_uuid varchar(36) primary key references users,
+            name varchar(255),
+            address varchar(255),
+            trip_date timestamp
+        )
+        '''
     )
-    ''',
-    dag=dag
-)
 
-
-# Unfortunately not a double-entry transactions table
-create_jelly_transactions_table = PostgresOperator(
-    task_id='postgres_create_jelly_transactions_table',
-    postgres_conn_id=CONNECTION,
-    sql='''
-    CREATE TABLE jelly_transactions (
-        from_user_uuid varchar(36) references jelly_users,
-        to_user_uuid varchar(36) references jelly_users,
-        exchanged_color_uuid varchar(36) references jelly_colors,
-        amount_exchanged integer,
-        lat float,
-        lon float,
-        exchange_date timestamp
+    create_daily_users_table = PostgresOperator(
+        task_id='postgres_daily_users_table',
+        postgres_conn_id=CONNECTION,
+        sql="""
+        CREATE TABLE daily_users AS 
+        SELECT u.user_uuid, u.name, DATE(t.trip_date) as date, COUNT(*) as count
+        FROM users u
+        JOIN trips t ON u.user_uuid=t.user_uuid  
+        GROUP BY u.user_uuid, u.name, DATE(t.trip_date)
+        """
     )
-    ''',
-    dag=dag
-)
 
-create_jelly_daily_users_view = PostgresOperator(
-    task_id='postgres_daily_users_table',
-    postgres_conn_id=CONNECTION,
-    sql="""
-    CREATE TABLE jelly_active_daily_users AS 
-    SELECT u.user_uuid, u.name, SUM(amount_exchanged)
-    FROM jelly_users u
-    JOIN jelly_transactions t ON (u.user_uuid=t.from_user_uuid OR u.user_uuid=t.to_user_uuid) 
-    GROUP BY u.user_uuid, u.name
-    """,
-    dag=dag
-)
-
-
-create_jelly_daily_users_green_jellys = PostgresOperator(
-    task_id='postgres_daily_users_green_jellys_table',
-    postgres_conn_id=CONNECTION,
-    sql="""
-    CREATE TABLE jelly_daily_users_green_jellys AS 
-    SELECT u.name, c.name as color
-    FROM jelly_active_daily_users u
-    JOIN jelly_favorite_colors f ON f.user_uuid = u.user_uuid
-    JOIN jelly_colors c ON c.color_uuid=f.color_uuid
-    WHERE c.name = 'green'
-    """,
-    dag=dag
-)
-
-drop >> [
-    create_jelly_colors, 
-    create_jelly_users, 
-] >> create_jelly_favorite_colors >> \
-create_jelly_transactions_table >> \
-create_jelly_daily_users_view >> create_jelly_daily_users_green_jellys
+    drop_tables >> [
+        create_users_table, 
+        create_trips_table, 
+    ] >> create_daily_users_table
