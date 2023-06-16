@@ -9,3 +9,4 @@ RUN jupyter nbextension enable code_font_size/main
 RUN jupyter nbextension enable codefolding/main
 RUN pip install openlineage-sql==0.27.2 openlineage-python==0.27.2 pyspark==3.3.1
 ADD TestParser.class .
+ADD *.jar /home/jovyan/jars/
