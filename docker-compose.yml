@@ -1,10 +1,11 @@
 version: "3.7"
 x-airflow-common:
   &airflow-common
-  image: quay.io/m_obuchowski/test_airflow
+  image: quay.io/m_obuchowski/test_airflow_pg
   environment:
     &airflow-common-env
     OPENLINEAGE_URL: http://api:5000
+    OPENLINEAGE_NAMESPACE: food_delivery
     AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@db/airflow
     # For backward compatibility, with Airflow <2.3
@@ -13,7 +14,7 @@ x-airflow-common:
     AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
     AIRFLOW__CORE__FERNET_KEY: ''
     AIRFLOW__CORE__LAZY_LOAD_PLUGINS: 'false'
-    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
     AIRFLOW__LOGGING__LOGGING_LEVEL: 'INFO'
     AIRFLOW__WEBSERVER__EXPOSE_CONFIG: 'true'

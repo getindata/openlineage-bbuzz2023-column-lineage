@@ -32,7 +32,7 @@ with DAG(
         task_id='postgres_drop_if_not_exists',
         postgres_conn_id=CONNECTION,
         sql='''
-            DROP TABLE IF EXISTS users, trips
+            DROP TABLE IF EXISTS users, trips, daily_users
         '''
     )
 
@@ -40,7 +40,7 @@ with DAG(
         task_id='postgres_create_users_table',
         postgres_conn_id=CONNECTION,
         sql='''
-        CREATE TABLE users (
+        CREATE TABLE IF NOT EXISTS users (
             user_uuid varchar(36) primary key,
             name varchar(255)
         )
@@ -51,8 +51,9 @@ with DAG(
         task_id='postgres_create_trips_table',
         postgres_conn_id=CONNECTION,
         sql='''
-        CREATE TABLE trips (
+        CREATE TABLE IF NOT EXISTS trips (
             user_uuid varchar(36) primary key references users,
+            restaurants_id integer,
             name varchar(255),
             address varchar(255),
             trip_date timestamp
@@ -64,15 +65,13 @@ with DAG(
         task_id='postgres_daily_users_table',
         postgres_conn_id=CONNECTION,
         sql="""
-        CREATE TABLE daily_users AS 
+        CREATE TABLE IF NOT EXISTS daily_users AS 
         SELECT u.user_uuid, u.name, DATE(t.trip_date) as date, COUNT(*) as count
         FROM users u
         JOIN trips t ON u.user_uuid=t.user_uuid  
+        JOIN top_berlin_restaurants tbr on t.restaurants_id=tbr.id
         GROUP BY u.user_uuid, u.name, DATE(t.trip_date)
         """
     )
 
-    drop_tables >> [
-        create_users_table, 
-        create_trips_table, 
-    ] >> create_daily_users_table
+    drop_tables >> create_users_table >> create_trips_table >> create_daily_users_table
